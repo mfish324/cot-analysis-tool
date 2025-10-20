@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install streamlit -q)",
+      "Bash(git add -A)",
+      "Bash(git commit -m \"Add interactive web app with Streamlit\n\nFeatures:\n- Interactive web interface with point-and-click navigation\n- Three pages: Analyze Commodity, Scan Extremes, Ticker Reference\n- Interactive Plotly charts (zoom, pan, hover)\n- Real-time extremes scanner with adjustable thresholds\n- Top 20 filter for liquid markets\n- Mobile-friendly responsive design\n- Easy to use: streamlit run app.py\n\nFiles added:\n- app.py: Main Streamlit application\n- run_app.bat: Windows launcher\n- WEB_APP.md: Complete web app documentation\n- Updated README.md to highlight web app\n- Updated requirements.txt with streamlit\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

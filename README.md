@@ -2,21 +2,42 @@
 
 Analyze CFTC Commitment of Traders data to identify market extremes and trading opportunities.
 
-## Quick Start
+## 🚀 Web App (Recommended!)
+
+**Interactive web interface** - Easy point-and-click analysis:
 
 ```bash
-# Analyze using ticker symbols (easy!)
+# Install dependencies
+pip install -r requirements.txt
+
+# Run web app
+streamlit run app.py
+# or on Windows: run_app.bat
+```
+
+Opens in your browser at `http://localhost:8501`
+
+**Features:**
+- 📈 Interactive charts with zoom/pan
+- 🔍 Extremes scanner with filters
+- 🎯 Ticker symbol search
+- 📊 Real-time COT Index
+- 📱 Mobile-friendly
+
+See [WEB_APP.md](WEB_APP.md) for full documentation.
+
+## 💻 Command Line
+
+```bash
+# Analyze using ticker symbols
 python analyze.py GC        # Gold
 python analyze.py CL        # Crude Oil
 python analyze.py ES        # S&P 500
 
-# Analyze with charts
+# With charts
 python analyze.py GC --chart
 
-# List all ticker symbols
-python analyze.py --tickers
-
-# Find extreme positions
+# Find extremes
 python analyze.py --extremes
 python analyze.py --extremes --top20
 ```
