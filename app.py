@@ -144,13 +144,28 @@ def create_cot_index_chart(index_df):
     """Create interactive COT Index chart"""
     fig = go.Figure()
 
-    # Add index line
+    # Determine mode based on number of points
+    if len(index_df) == 1:
+        # Single point - use markers only
+        mode = 'markers'
+        marker_size = 12
+    elif len(index_df) < 5:
+        # Few points - use lines and markers
+        mode = 'lines+markers'
+        marker_size = 8
+    else:
+        # Many points - use lines only
+        mode = 'lines'
+        marker_size = 6
+
+    # Add index line/markers
     fig.add_trace(go.Scatter(
         x=index_df['date'],
         y=index_df['cot_index'],
-        mode='lines',
+        mode=mode,
         name='COT Index',
-        line=dict(color='#2E86AB', width=3)
+        line=dict(color='#2E86AB', width=3),
+        marker=dict(size=marker_size, color='#2E86AB')
     ))
 
     # Add threshold lines
@@ -235,7 +250,7 @@ def create_open_interest_chart(market_data):
     return fig
 
 
-def scan_extremes(df, threshold_high=80, threshold_low=20, top20_only=False):
+def scan_extremes(df, threshold_high=80, threshold_low=20, top20_only=False, progress_callback=None):
     """Scan all markets for extremes"""
     markets = df['Market and Exchange Names'].unique()
 
@@ -252,8 +267,13 @@ def scan_extremes(df, threshold_high=80, threshold_low=20, top20_only=False):
                 break
 
     results = []
+    total = len(markets)
 
-    for market_name in markets:
+    for idx, market_name in enumerate(markets):
+        # Update progress
+        if progress_callback:
+            progress_callback(idx + 1, total)
+
         try:
             market_data, name, index_df = analyze_commodity(df, market_name)
             if index_df is not None and not index_df.empty:
@@ -402,6 +422,8 @@ def main():
             with tab1:
                 if not index_df.empty:
                     st.plotly_chart(create_cot_index_chart(index_df), use_container_width=True)
+                    if len(index_df) < 10:
+                        st.info(f"ℹ️ Limited data: Only {len(index_df)} data point(s) available. Chart may show markers instead of a continuous line.")
                 else:
                     st.warning("⚠️ Not enough historical data to calculate COT Index (need at least 10 data points)")
 
@@ -426,8 +448,20 @@ def main():
             top20_only = st.checkbox("Top 20 by Volume Only", value=False)
 
         if st.button("🔍 Scan Markets", type="primary"):
-            with st.spinner("Scanning all markets..."):
-                results = scan_extremes(df, threshold_high, threshold_low, top20_only)
+            # Create progress bar
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+
+            def update_progress(current, total):
+                progress = current / total
+                progress_bar.progress(progress)
+                status_text.text(f"Scanning... {current}/{total} markets")
+
+            results = scan_extremes(df, threshold_high, threshold_low, top20_only, progress_callback=update_progress)
+
+            # Clear progress indicators
+            progress_bar.empty()
+            status_text.empty()
 
             if results.empty:
                 st.info("No extremes found with current thresholds.")
