@@ -112,15 +112,27 @@ def analyze_commodity(df, commodity_name):
     indices = []
     dates = []
 
-    for i in range(lookback, len(market_data)):
-        window = market_data.iloc[i-lookback:i+1]
-        net = window['noncomm_net']
+    # Need at least 10 data points for meaningful index
+    if lookback < 10:
+        # Return empty index_df but still return market_data
+        index_df = pd.DataFrame({'date': [], 'cot_index': []})
+        return market_data, market_name, index_df
+
+    # Calculate rolling COT Index
+    for i in range(lookback - 1, len(market_data)):
+        start_idx = max(0, i - lookback + 1)
+        window = market_data.iloc[start_idx:i+1]
+        net = window['noncomm_net'].dropna()
+
+        if len(net) < 10:  # Skip if not enough valid data
+            continue
+
         min_val, max_val = net.min(), net.max()
 
-        if max_val != min_val:
+        if max_val != min_val and not pd.isna(net.iloc[-1]):
             idx = ((net.iloc[-1] - min_val) / (max_val - min_val)) * 100
             indices.append(idx)
-            dates.append(window['date'].iloc[-1])
+            dates.append(market_data['date'].iloc[i])
 
     # Create index dataframe
     index_df = pd.DataFrame({'date': dates, 'cot_index': indices})
@@ -390,6 +402,8 @@ def main():
             with tab1:
                 if not index_df.empty:
                     st.plotly_chart(create_cot_index_chart(index_df), use_container_width=True)
+                else:
+                    st.warning("⚠️ Not enough historical data to calculate COT Index (need at least 10 data points)")
 
             with tab2:
                 st.plotly_chart(create_positions_chart(market_data), use_container_width=True)

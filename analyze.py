@@ -106,36 +106,49 @@ def simple_analyze(commodity_name='GOLD', create_charts=False):
     lookback = min(156, len(market_data))  # 3 years or available data
     recent_data = market_data.tail(lookback)
 
-    noncomm_net_recent = recent_data['noncomm_net']
-    min_val = noncomm_net_recent.min()
-    max_val = noncomm_net_recent.max()
+    noncomm_net_recent = recent_data['noncomm_net'].dropna()
 
-    if max_val != min_val:
-        cot_index = ((latest['noncomm_net'] - min_val) / (max_val - min_val)) * 100
+    # Check if we have enough valid data
+    if len(noncomm_net_recent) < 10:
+        cot_index = None  # Not enough data
     else:
-        cot_index = 50
+        min_val = noncomm_net_recent.min()
+        max_val = noncomm_net_recent.max()
+
+        if max_val != min_val and not pd.isna(latest['noncomm_net']):
+            cot_index = ((latest['noncomm_net'] - min_val) / (max_val - min_val)) * 100
+        else:
+            cot_index = 50
 
     print(f"\n{'-'*60}")
     print(f"COT INDEX (0-100)")
     print(f"{'-'*60}")
-    print(f"Current Index:        {cot_index:>12.1f}")
 
-    if cot_index >= 80:
-        print(f"Signal:               OVERBOUGHT (contrarian bearish)")
-    elif cot_index <= 20:
-        print(f"Signal:               OVERSOLD (contrarian bullish)")
+    if cot_index is None:
+        print(f"Current Index:        NOT AVAILABLE")
+        print(f"Signal:               N/A - Insufficient historical data (<10 data points)")
+        print(f"\nInterpretation:")
+        print(f"  This market does not have enough historical data to calculate")
+        print(f"  a meaningful COT Index. At least 10 weekly reports are needed.")
     else:
-        print(f"Signal:               NEUTRAL")
+        print(f"Current Index:        {cot_index:>12.1f}")
 
-    print(f"\nInterpretation:")
-    if cot_index >= 80:
-        print(f"  Speculators are at near-maximum bullish positioning.")
-        print(f"  This often marks market tops. Watch for reversal.")
-    elif cot_index <= 20:
-        print(f"  Speculators are at near-maximum bearish positioning.")
-        print(f"  This often marks market bottoms. Watch for bounce.")
-    else:
-        print(f"  Positioning is in the middle of the recent range.")
+        if cot_index >= 80:
+            print(f"Signal:               OVERBOUGHT (contrarian bearish)")
+        elif cot_index <= 20:
+            print(f"Signal:               OVERSOLD (contrarian bullish)")
+        else:
+            print(f"Signal:               NEUTRAL")
+
+        print(f"\nInterpretation:")
+        if cot_index >= 80:
+            print(f"  Speculators are at near-maximum bullish positioning.")
+            print(f"  This often marks market tops. Watch for reversal.")
+        elif cot_index <= 20:
+            print(f"  Speculators are at near-maximum bearish positioning.")
+            print(f"  This often marks market bottoms. Watch for bounce.")
+        else:
+            print(f"  Positioning is in the middle of the recent range.")
 
     print(f"\n{'='*60}")
 
