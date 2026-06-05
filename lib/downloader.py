@@ -82,8 +82,14 @@ class COTDownloader:
         for report_type in self.REPORT_TYPES.keys():
             (self.data_dir / report_type).mkdir(exist_ok=True)
 
-    def download_year(self, report_type, year):
-        """Download COT data for a specific year and report type"""
+    def download_year(self, report_type, year, force=False):
+        """Download COT data for a specific year and report type.
+
+        force=True re-downloads even if a cached parquet exists.
+        Without force, the cache is only used when it already contains
+        every weekly report through year-end (year < current year) — so
+        partial-year caches for the current and prior year get refreshed.
+        """
         if report_type not in self.REPORT_TYPES:
             raise ValueError(f"Invalid report type: {report_type}")
 
@@ -94,11 +100,17 @@ class COTDownloader:
             # Silently skip years before data availability
             return None
 
-        # Check if file already exists
         output_file = self.data_dir / report_type / f"{year}.parquet"
-        if output_file.exists():
-            print(f"Loading cached {report_config['name']} for {year}...")
-            return pd.read_parquet(output_file)
+        if output_file.exists() and not force:
+            if year < datetime.now().year:
+                cached = pd.read_parquet(output_file)
+                date_col = next((c for c in cached.columns if 'YYYY-MM-DD' in c), None)
+                if date_col is not None and pd.to_datetime(cached[date_col]).max() >= pd.Timestamp(year, 12, 24):
+                    print(f"Loading cached {report_config['name']} for {year}...")
+                    return cached
+                print(f"Cached {year} {report_type} is incomplete — re-downloading...")
+            else:
+                print(f"Refreshing {report_config['name']} for {year} (current year)...")
 
         # Construct URL - try current year URLs first, then historical
         urls_to_try = []
